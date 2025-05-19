@@ -27,9 +27,17 @@ char *compute_get_request(char *host, char *url, char *query_params,
     // Step 2: add the host
     sprintf(line, "Host: %s", host);
     compute_message(message, line);
+
     // Step 3 (optional): add headers and/or cookies, according to the protocol format
-    if (cookies != NULL) {
-       
+    if (cookies != NULL && cookies_count > 0) {
+        sprintf(line, "Cookie: ");
+        for (int i = 0; i < cookies_count; i++) {
+            strcat(line, cookies[i]);
+            if (i < cookies_count - 1) {
+                strcat(line, "; ");
+            }
+        }
+        compute_message(message, line);
     }
     // Step 4: add final new line
     compute_message(message, "");
@@ -65,10 +73,18 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
             strcat(body_data_buffer, "&");
         }
     }
-
     sprintf(line, "Content-Length: %zu", strlen(body_data_buffer));
+    compute_message(message, line);
     // Step 4 (optional): add cookies
-    if (cookies != NULL) {
+    if (cookies != NULL && cookies_count > 0) {
+        sprintf(line, "Cookie: ");
+        for (int i = 0; i < cookies_count; i++) {
+            strcat(line, cookies[i]);
+            if (i < cookies_count - 1) {
+                strcat(line, "; ");
+            }
+        }
+        compute_message(message, line);
        
     }
     // Step 5: add new line at end of header
@@ -78,5 +94,37 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
     strcat(message, body_data_buffer);
 
     free(line);
+    return message;
+}
+
+char *compute_delete_request(char *host, char *url, char *query_params,
+                            char **cookies, int cookies_count)
+{
+    char *message = calloc(BUFLEN, sizeof(char));
+    char *line = calloc(LINELEN, sizeof(char));
+
+    if (query_params != NULL) {
+        sprintf(line, "DELETE %s?%s HTTP/1.1", url, query_params);
+    } else {
+        sprintf(line, "DELETE %s HTTP/1.1", url);
+    }
+
+    compute_message(message, line);
+
+    sprintf(line, "Host: %s", host);
+    compute_message(message, line);
+
+    if (cookies != NULL && cookies_count > 0) {
+        sprintf(line, "Cookie: ");
+        for (int i = 0; i < cookies_count; i++) {
+            strcat(line, cookies[i]);
+            if (i < cookies_count - 1) {
+                strcat(line, "; ");
+            }
+        }
+        compute_message(message, line);
+    }
+
+    compute_message(message, "");
     return message;
 }
