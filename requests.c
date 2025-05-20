@@ -10,7 +10,7 @@
 #include "requests.h"
 
 char *compute_get_request(char *host, char *url, char *query_params,
-                            char **cookies, int cookies_count)
+                            char **cookies, int cookies_count, char **headers, int headers_count)
 {
     char *message = calloc(BUFLEN, sizeof(char));
     char *line = calloc(LINELEN, sizeof(char));
@@ -28,6 +28,13 @@ char *compute_get_request(char *host, char *url, char *query_params,
     sprintf(line, "Host: %s", host);
     compute_message(message, line);
 
+    // Step 3 (optional): add headers, according to the protocol format
+    if (headers != NULL && headers_count > 0) {
+        for (int i = 0; i < headers_count; i++) {
+            compute_message(message, headers[i]);
+        }
+    }
+
     // Step 3 (optional): add headers and/or cookies, according to the protocol format
     if (cookies != NULL && cookies_count > 0) {
         sprintf(line, "Cookie: ");
@@ -39,13 +46,34 @@ char *compute_get_request(char *host, char *url, char *query_params,
         }
         compute_message(message, line);
     }
+
     // Step 4: add final new line
     compute_message(message, "");
     return message;
 }
 
+char *compute_JWT_get_request(char *host, char *url, char *jwt_token)
+{
+    char *message = calloc(BUFLEN, sizeof(char));
+    char *line = calloc(LINELEN, sizeof(char));
+
+    sprintf(line, "GET %s HTTP/1.1", url);
+    compute_message(message, line);
+
+    sprintf(line, "Host: %s", host);
+    compute_message(message, line);
+
+    if (jwt_token != NULL) {
+        sprintf(line, "Authorization: Bearer %s", jwt_token);
+        compute_message(message, line);
+    }
+
+    compute_message(message, "");
+    return message;
+}
+
 char *compute_post_request(char *host, char *url, char* content_type, char **body_data,
-                            int body_data_fields_count, char **cookies, int cookies_count)
+                            int body_data_fields_count, char **cookies, int cookies_count, char **headers, int headers_count)
 {
     char *message = calloc(BUFLEN, sizeof(char));
     char *line = calloc(LINELEN, sizeof(char));
@@ -64,6 +92,13 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
     if (content_type != NULL) {
         sprintf(line, "Content-Type: %s", content_type);
         compute_message(message, line);
+    }
+
+    // Step 3.1: add headers, according to the protocol format
+    if (headers != NULL && headers_count > 0) {
+        for (int i = 0; i < headers_count; i++) {
+            compute_message(message, headers[i]);
+        }
     }
 
     // Step 3.1: add Content-Length
@@ -127,4 +162,12 @@ char *compute_delete_request(char *host, char *url, char *query_params,
 
     compute_message(message, "");
     return message;
+}
+
+char *build_jwt_header(char *jwt_token)
+{
+    char *header = calloc(LINELEN, sizeof(char));
+    sprintf(header, "Authorization: Bearer %s", jwt_token);
+
+    return header;
 }
